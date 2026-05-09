@@ -103,10 +103,10 @@ const NAV_ITEMS: NavItemDef[] = [
 
 // ─── Motion configs ────────────────────────────────────────────────────────────
 
-const EASE_SIMPLE = { duration: 0.16, ease: [0.25, 0.1, 0.25, 1] } as const;
+const EASE_SIMPLE = { duration: 0.15, ease: [0.25, 0.1, 0.25, 1] } as const;
 const SPRING_ICON = { type: "spring" as const, stiffness: 500, damping: 30 };
-const SPRING_PANEL = { type: "spring" as const, stiffness: 520, damping: 28 };
-const SPRING_ITEM = { type: "spring" as const, stiffness: 460, damping: 26 };
+const SPRING_PANEL = { type: "spring" as const, stiffness: 680, damping: 14, mass: 0.8 };
+const SPRING_ITEM = { type: "spring" as const, stiffness: 520, damping: 22 };
 
 // ─── Theme system ─────────────────────────────────────────────────────────────
 
@@ -257,9 +257,9 @@ function PanelItem({
   return (
     <motion.button
       className="w-full flex items-center gap-3 px-3 py-[9px] rounded-xl text-left outline-none cursor-pointer"
-      initial={{ opacity: 0, y: -5 }}
+      initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ ...SPRING_ITEM, delay: index * 0.03 }}
+      transition={{ ...SPRING_ITEM, delay: index * 0.018 }}
       style={{
         background: hovered ? colors.itemHover : "transparent",
       }}
@@ -303,9 +303,9 @@ function FloatingPanel({
       key={item.id}
       className="absolute top-full mt-3 z-40"
       style={{ left, width: PANEL_WIDTH }}
-      initial={{ opacity: 0, y: -14, scale: 0.93 }}
+      initial={{ opacity: 0, y: -22, scale: 0.88 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -8, scale: 0.96 }}
+      exit={{ opacity: 0, y: -10, scale: 0.95, transition: { duration: 0.12 } }}
       transition={SPRING_PANEL}
       onClick={(e) => e.stopPropagation()}
     >
@@ -346,35 +346,42 @@ function ThemeButton({
   onToggle: () => void;
   colors: Colors;
 }) {
+  const [hovered, setHovered] = useState(false);
+
   return (
     <motion.button
-      className="flex items-center justify-center w-[32px] h-[32px] rounded-[10px] outline-none cursor-pointer flex-shrink-0"
-      style={{ background: colors.themeBtn }}
-      whileHover={{ scale: 1.08, background: colors.themeBtnHover }}
-      whileTap={{ scale: 0.9 }}
+      className="flex items-center justify-center w-[34px] h-[34px] rounded-[11px] outline-none cursor-pointer flex-shrink-0"
+      style={{
+        background: hovered ? colors.themeBtnHover : colors.themeBtn,
+        transition: "background 0.14s ease",
+      }}
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.88 }}
       transition={EASE_SIMPLE}
+      onHoverStart={() => setHovered(true)}
+      onHoverEnd={() => setHovered(false)}
       onClick={onToggle}
     >
       <AnimatePresence mode="wait" initial={false}>
         {isDark ? (
           <motion.div
             key="moon"
-            initial={{ opacity: 0, rotate: -30, scale: 0.7 }}
+            initial={{ opacity: 0, rotate: -40, scale: 0.6 }}
             animate={{ opacity: 1, rotate: 0, scale: 1 }}
-            exit={{ opacity: 0, rotate: 30, scale: 0.7 }}
-            transition={{ duration: 0.2 }}
+            exit={{ opacity: 0, rotate: 40, scale: 0.6 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20 }}
           >
-            <Moon size={14} strokeWidth={1.9} color={colors.iconDefault} />
+            <Moon size={15} strokeWidth={1.8} color={isDark ? "#E5E5E5" : colors.iconDefault} />
           </motion.div>
         ) : (
           <motion.div
             key="sun"
-            initial={{ opacity: 0, rotate: 30, scale: 0.7 }}
+            initial={{ opacity: 0, rotate: 40, scale: 0.6 }}
             animate={{ opacity: 1, rotate: 0, scale: 1 }}
-            exit={{ opacity: 0, rotate: -30, scale: 0.7 }}
-            transition={{ duration: 0.2 }}
+            exit={{ opacity: 0, rotate: -40, scale: 0.6 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20 }}
           >
-            <Sun size={14} strokeWidth={1.9} color={colors.iconDefault} />
+            <Sun size={15} strokeWidth={1.8} color={colors.iconDefault} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -405,9 +412,10 @@ export default function HorizontalSidebarInteraction() {
     if (iconEl && navEl) {
       const iconRect = iconEl.getBoundingClientRect();
       const navRect = navEl.getBoundingClientRect();
+      // Center panel under icon, clamped to stay within nav bounds
       const iconCenterInNav = iconRect.left + iconRect.width / 2 - navRect.left;
       const raw = iconCenterInNav - PANEL_WIDTH / 2;
-      const clamped = Math.max(0, Math.min(NAV_WIDTH - PANEL_WIDTH, raw));
+      const clamped = Math.max(8, Math.min(NAV_WIDTH - PANEL_WIDTH - 8, raw));
       setPanelLeft(clamped);
     }
     setActiveId(id);
