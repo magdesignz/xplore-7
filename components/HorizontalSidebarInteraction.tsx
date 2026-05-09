@@ -26,7 +26,7 @@ import {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const NAV_WIDTH = 600;
-const PANEL_WIDTH = 268;
+const PANEL_WIDTH = 220;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -117,19 +117,23 @@ function useColors(isDark: boolean) {
     // Nav shell
     navLight: "#F8F8F8" as const,
     navDark: "#1C1C1E" as const,
-    navBorder: isDark ? "rgba(255,255,255,0.09)" : "#FFFFFF",
-    navShadow: isDark ? "0px 4px 24px rgba(0,0,0,0.55)" : "0px 4px 12px #EAEAEA",
+    navBorder: isDark ? "rgba(255,255,255,0.11)" : "#FFFFFF",
+    // No shadow in dark mode
+    navShadow: isDark ? "none" : "0px 4px 12px #EAEAEA",
 
-    divider: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
+    divider: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
     iconDefault: isDark ? "#787878" : "#8A8A8A",
     activeGrad: "linear-gradient(145deg, #2c2c2e 0%, #1c1c1e 100%)" as const,
-    activeShadow: "0 2px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.09)" as const,
+    activeShadow: isDark
+      ? "inset 0 1px 0 rgba(255,255,255,0.09)"
+      : "0 2px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.09)",
     hoverBg: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.052)",
 
     panel: isDark ? "#1C1C1E" : "#F8F8F8",
-    panelBorder: isDark ? "rgba(255,255,255,0.09)" : "#FFFFFF",
+    panelBorder: isDark ? "rgba(255,255,255,0.11)" : "#FFFFFF",
+    // No shadow in dark mode
     panelShadow: isDark
-      ? "0px 8px 32px rgba(0,0,0,0.55), 0px 2px 8px rgba(0,0,0,0.4)"
+      ? "none"
       : "0px 8px 32px rgba(0,0,0,0.09), 0px 2px 8px rgba(0,0,0,0.05)",
     text: isDark ? "#F0F0F0" : "#1A1A1A",
     textSub: isDark ? "#666666" : "#8A8A8A",
@@ -443,16 +447,16 @@ export default function HorizontalSidebarInteraction() {
               }}
             />
 
-            {/* Dark wipe — clip-path grows left → right on isDark */}
+            {/* Dark wipe — clip-path sweeps RIGHT → LEFT on isDark */}
             <motion.div
               style={{ position: "absolute", inset: 0, background: colors.navDark }}
               initial={false}
               animate={{
                 clipPath: isDark
-                  ? "inset(0 0% 0 0)"       // fully visible
-                  : "inset(0 100% 0 0)",    // fully clipped (right side collapses last)
+                  ? "inset(0 0% 0 0%)"      // fully visible
+                  : "inset(0 0% 0 100%)",   // clipped from left = dark vanishes rightward
               }}
-              transition={{ duration: 0.2, ease: "linear" }}
+              transition={{ duration: 0.16, ease: "linear" }}
             />
           </div>
 
