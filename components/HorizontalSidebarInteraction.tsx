@@ -21,20 +21,19 @@ import {
   ClipboardList,
   Shield,
   Sliders,
-  LogOut,
 } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const NAV_WIDTH = 600;
-const PANEL_WIDTH = 272;
+const PANEL_WIDTH = 268;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PanelItem = { icon: LucideIcon; label: string };
 type NavItemDef = { id: string; icon: LucideIcon; label: string; panel: PanelItem[] };
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
+// ─── Data — exactly 3 items per panel ─────────────────────────────────────────
 
 const NAV_ITEMS: NavItemDef[] = [
   {
@@ -55,7 +54,6 @@ const NAV_ITEMS: NavItemDef[] = [
       { icon: User, label: "Account" },
       { icon: Sliders, label: "Preferences" },
       { icon: Shield, label: "Security" },
-      { icon: LogOut, label: "Sign out" },
     ],
   },
   {
@@ -75,7 +73,6 @@ const NAV_ITEMS: NavItemDef[] = [
     panel: [
       { icon: TrendingUp, label: "Earnings" },
       { icon: TrendingDown, label: "Refunds" },
-      { icon: CreditCard, label: "Declines" },
       { icon: ArrowUpRight, label: "Payouts" },
     ],
   },
@@ -101,39 +98,42 @@ const NAV_ITEMS: NavItemDef[] = [
   },
 ];
 
-// ─── Motion configs ────────────────────────────────────────────────────────────
+// ─── Motion ────────────────────────────────────────────────────────────────────
 
-const EASE_SIMPLE = { duration: 0.15, ease: [0.25, 0.1, 0.25, 1] } as const;
-const SPRING_ICON = { type: "spring" as const, stiffness: 500, damping: 30 };
-const SPRING_PANEL = { type: "spring" as const, stiffness: 680, damping: 14, mass: 0.8 };
-const SPRING_ITEM = { type: "spring" as const, stiffness: 520, damping: 22 };
+const EASE = { duration: 0.14, ease: [0.25, 0.1, 0.25, 1] } as const;
+const SPRING_ICON = { type: "spring" as const, stiffness: 480, damping: 28 };
+// Liquid bounce — underdamped, very fast
+const SPRING_LIQUID = { type: "spring" as const, stiffness: 900, damping: 12, mass: 0.7 };
+const SPRING_ITEM = { type: "spring" as const, stiffness: 540, damping: 24 };
 
-// ─── Theme system ─────────────────────────────────────────────────────────────
+// ─── Theme — background & grid NEVER change ────────────────────────────────────
 
 function useColors(isDark: boolean) {
   return {
-    canvas: isDark ? "#111111" : "#EDEDED",
-    grid: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
-    nav: isDark ? "#1C1C1E" : "#F8F8F8",
+    // These never change — always light
+    canvas: "#EDEDED" as const,
+    grid: "rgba(0,0,0,0.03)" as const,
+
+    // Nav shell
+    navLight: "#F8F8F8" as const,
+    navDark: "#1C1C1E" as const,
     navBorder: isDark ? "rgba(255,255,255,0.09)" : "#FFFFFF",
     navShadow: isDark ? "0px 4px 24px rgba(0,0,0,0.55)" : "0px 4px 12px #EAEAEA",
+
     divider: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
-    iconDefault: "#8A8A8A",
-    activeGrad: isDark
-      ? "linear-gradient(145deg, #3a3a3c 0%, #2c2c2e 100%)"
-      : "linear-gradient(145deg, #2c2c2e 0%, #1c1c1e 100%)",
-    activeShadow: "0 2px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.09)",
+    iconDefault: isDark ? "#787878" : "#8A8A8A",
+    activeGrad: "linear-gradient(145deg, #2c2c2e 0%, #1c1c1e 100%)" as const,
+    activeShadow: "0 2px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.09)" as const,
     hoverBg: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.052)",
-    tooltipGrad: "linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%)",
+
     panel: isDark ? "#1C1C1E" : "#F8F8F8",
     panelBorder: isDark ? "rgba(255,255,255,0.09)" : "#FFFFFF",
     panelShadow: isDark
       ? "0px 8px 32px rgba(0,0,0,0.55), 0px 2px 8px rgba(0,0,0,0.4)"
       : "0px 8px 32px rgba(0,0,0,0.09), 0px 2px 8px rgba(0,0,0,0.05)",
     text: isDark ? "#F0F0F0" : "#1A1A1A",
-    textSub: "#8A8A8A",
+    textSub: isDark ? "#666666" : "#8A8A8A",
     itemHover: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.042)",
-    itemTap: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)",
     itemIconBg: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.03)",
     itemIconBgHover: isDark ? "rgba(255,255,255,0.11)" : "rgba(0,0,0,0.06)",
     themeBtn: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)",
@@ -143,19 +143,22 @@ function useColors(isDark: boolean) {
 
 type Colors = ReturnType<typeof useColors>;
 
+// Shared CSS transition string for color-only properties
+const CT = "color 0.18s linear, background-color 0.18s linear, border-color 0.18s linear, box-shadow 0.18s linear";
+
 // ─── MacDots ──────────────────────────────────────────────────────────────────
 
 function MacDots() {
   return (
     <div className="flex items-center gap-[6px] pl-1 flex-shrink-0">
-      {["#FF5F57", "#FEBC2E", "#28C840"].map((color, i) => (
+      {["#FF5F57", "#FEBC2E", "#28C840"].map((c, i) => (
         <motion.div
           key={i}
           className="w-[11px] h-[11px] rounded-full cursor-pointer"
-          style={{ background: color }}
+          style={{ background: c }}
           whileHover={{ scale: 1.14 }}
-          whileTap={{ scale: 0.88 }}
-          transition={EASE_SIMPLE}
+          whileTap={{ scale: 0.86 }}
+          transition={EASE}
         />
       ))}
     </div>
@@ -164,19 +167,19 @@ function MacDots() {
 
 // ─── Tooltip ──────────────────────────────────────────────────────────────────
 
-function Tooltip({ label, colors }: { label: string; colors: Colors }) {
+function Tooltip({ label }: { label: string }) {
   return (
     <motion.div
       className="absolute -top-9 left-1/2 -translate-x-1/2 pointer-events-none z-50"
-      initial={{ opacity: 0, y: 4 }}
+      initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 3 }}
-      transition={{ duration: 0.13, ease: "easeOut" }}
+      transition={{ duration: 0.12, ease: "easeOut" }}
     >
       <div
         className="whitespace-nowrap px-[10px] py-[5px] rounded-2xl text-white text-[11px] font-medium"
         style={{
-          background: colors.tooltipGrad,
+          background: "linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%)",
           boxShadow: "0 4px 14px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08)",
           letterSpacing: "0.01em",
         }}
@@ -204,26 +207,20 @@ const NavIcon = React.forwardRef<HTMLDivElement, NavIconProps>(
     return (
       <div ref={ref} className="relative flex flex-col items-center">
         <AnimatePresence>
-          {hovered && !isActive && <Tooltip label={item.label} colors={colors} />}
+          {hovered && !isActive && <Tooltip label={item.label} />}
         </AnimatePresence>
 
         <motion.button
           className="flex items-center justify-center w-[44px] h-[44px] rounded-[13px] outline-none cursor-pointer"
           style={{
-            background: isActive
-              ? colors.activeGrad
-              : hovered
-              ? colors.hoverBg
-              : "transparent",
+            background: isActive ? colors.activeGrad : hovered ? colors.hoverBg : "transparent",
             boxShadow: isActive ? colors.activeShadow : "none",
+            transition: CT,
           }}
-          animate={{
-            y: isActive ? -2 : 0,
-            scale: isActive ? 1.03 : 1,
-          }}
+          animate={{ y: isActive ? -2 : 0, scale: isActive ? 1.03 : 1 }}
           whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.91, y: 0 }}
-          transition={isActive ? SPRING_ICON : EASE_SIMPLE}
+          whileTap={{ scale: 0.9, y: 0 }}
+          transition={isActive ? SPRING_ICON : EASE}
           onHoverStart={() => setHovered(true)}
           onHoverEnd={() => setHovered(false)}
           onClick={onClick}
@@ -242,27 +239,17 @@ NavIcon.displayName = "NavIcon";
 
 // ─── PanelItem ────────────────────────────────────────────────────────────────
 
-function PanelItem({
-  item,
-  index,
-  colors,
-}: {
-  item: PanelItem;
-  index: number;
-  colors: Colors;
-}) {
+function PanelItem({ item, index, colors }: { item: PanelItem; index: number; colors: Colors }) {
   const [hovered, setHovered] = useState(false);
   const Icon = item.icon;
 
   return (
     <motion.button
       className="w-full flex items-center gap-3 px-3 py-[9px] rounded-xl text-left outline-none cursor-pointer"
-      initial={{ opacity: 0, y: -4 }}
+      initial={{ opacity: 0, y: -5 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ ...SPRING_ITEM, delay: index * 0.018 }}
-      style={{
-        background: hovered ? colors.itemHover : "transparent",
-      }}
+      transition={{ ...SPRING_ITEM, delay: index * 0.016 }}
+      style={{ background: hovered ? colors.itemHover : "transparent", transition: CT }}
       whileHover={{ x: 2 }}
       whileTap={{ scale: 0.97 }}
       onHoverStart={() => setHovered(true)}
@@ -272,14 +259,14 @@ function PanelItem({
         className="flex items-center justify-center w-[30px] h-[30px] rounded-[9px] flex-shrink-0"
         style={{
           background: hovered ? colors.itemIconBgHover : colors.itemIconBg,
-          transition: "background 0.14s ease",
+          transition: CT,
         }}
       >
-        <Icon size={14} strokeWidth={1.9} color={colors.text} />
+        <Icon size={14} strokeWidth={1.9} color={colors.text} style={{ transition: CT }} />
       </div>
       <span
         className="text-[13px] font-medium"
-        style={{ color: colors.text, letterSpacing: "-0.01em" }}
+        style={{ color: colors.text, letterSpacing: "-0.01em", transition: CT }}
       >
         {item.label}
       </span>
@@ -289,24 +276,17 @@ function PanelItem({
 
 // ─── FloatingPanel ────────────────────────────────────────────────────────────
 
-function FloatingPanel({
-  item,
-  left,
-  colors,
-}: {
-  item: NavItemDef;
-  left: number;
-  colors: Colors;
-}) {
+function FloatingPanel({ item, left, colors }: { item: NavItemDef; left: number; colors: Colors }) {
   return (
     <motion.div
       key={item.id}
       className="absolute top-full mt-3 z-40"
-      style={{ left, width: PANEL_WIDTH }}
-      initial={{ opacity: 0, y: -22, scale: 0.88 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -10, scale: 0.95, transition: { duration: 0.12 } }}
-      transition={SPRING_PANEL}
+      style={{ left, width: PANEL_WIDTH, transformOrigin: "top left" }}
+      // Liquid drop: fast spring with visible bounce + squash from top
+      initial={{ opacity: 0, y: -18, scaleY: 0.62, scaleX: 1.04 }}
+      animate={{ opacity: 1, y: 0, scaleY: 1, scaleX: 1 }}
+      exit={{ opacity: 0, y: -8, scaleY: 0.94, transition: { duration: 0.1, ease: "easeIn" } }}
+      transition={SPRING_LIQUID}
       onClick={(e) => e.stopPropagation()}
     >
       <div
@@ -315,19 +295,20 @@ function FloatingPanel({
           background: colors.panel,
           border: `1.5px solid ${colors.panelBorder}`,
           boxShadow: colors.panelShadow,
+          transition: CT,
         }}
       >
         <div className="px-3 pt-2 pb-1 mb-1">
           <span
             className="text-[10px] font-semibold uppercase"
-            style={{ color: colors.textSub, letterSpacing: "0.09em" }}
+            style={{ color: colors.textSub, letterSpacing: "0.09em", transition: CT }}
           >
             {item.label}
           </span>
         </div>
         <div className="flex flex-col gap-[2px]">
-          {item.panel.map((panelItem, i) => (
-            <PanelItem key={panelItem.label} item={panelItem} index={i} colors={colors} />
+          {item.panel.map((p, i) => (
+            <PanelItem key={p.label} item={p} index={i} colors={colors} />
           ))}
         </div>
       </div>
@@ -337,27 +318,16 @@ function FloatingPanel({
 
 // ─── ThemeButton ──────────────────────────────────────────────────────────────
 
-function ThemeButton({
-  isDark,
-  onToggle,
-  colors,
-}: {
-  isDark: boolean;
-  onToggle: () => void;
-  colors: Colors;
-}) {
+function ThemeButton({ isDark, onToggle, colors }: { isDark: boolean; onToggle: () => void; colors: Colors }) {
   const [hovered, setHovered] = useState(false);
 
   return (
     <motion.button
       className="flex items-center justify-center w-[34px] h-[34px] rounded-[11px] outline-none cursor-pointer flex-shrink-0"
-      style={{
-        background: hovered ? colors.themeBtnHover : colors.themeBtn,
-        transition: "background 0.14s ease",
-      }}
+      style={{ background: hovered ? colors.themeBtnHover : colors.themeBtn, transition: CT }}
       whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.88 }}
-      transition={EASE_SIMPLE}
+      whileTap={{ scale: 0.86 }}
+      transition={EASE}
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => setHovered(false)}
       onClick={onToggle}
@@ -366,20 +336,20 @@ function ThemeButton({
         {isDark ? (
           <motion.div
             key="moon"
-            initial={{ opacity: 0, rotate: -40, scale: 0.6 }}
+            initial={{ opacity: 0, rotate: -50, scale: 0.5 }}
             animate={{ opacity: 1, rotate: 0, scale: 1 }}
-            exit={{ opacity: 0, rotate: 40, scale: 0.6 }}
-            transition={{ type: "spring", stiffness: 400, damping: 20 }}
+            exit={{ opacity: 0, rotate: 50, scale: 0.5 }}
+            transition={{ type: "spring", stiffness: 420, damping: 18 }}
           >
-            <Moon size={15} strokeWidth={1.8} color={isDark ? "#E5E5E5" : colors.iconDefault} />
+            <Moon size={15} strokeWidth={1.8} color="#E0E0E0" />
           </motion.div>
         ) : (
           <motion.div
             key="sun"
-            initial={{ opacity: 0, rotate: 40, scale: 0.6 }}
+            initial={{ opacity: 0, rotate: 50, scale: 0.5 }}
             animate={{ opacity: 1, rotate: 0, scale: 1 }}
-            exit={{ opacity: 0, rotate: -40, scale: 0.6 }}
-            transition={{ type: "spring", stiffness: 400, damping: 20 }}
+            exit={{ opacity: 0, rotate: -50, scale: 0.5 }}
+            transition={{ type: "spring", stiffness: 420, damping: 18 }}
           >
             <Sun size={15} strokeWidth={1.8} color={colors.iconDefault} />
           </motion.div>
@@ -412,10 +382,9 @@ export default function HorizontalSidebarInteraction() {
     if (iconEl && navEl) {
       const iconRect = iconEl.getBoundingClientRect();
       const navRect = navEl.getBoundingClientRect();
-      // Center panel under icon, clamped to stay within nav bounds
-      const iconCenterInNav = iconRect.left + iconRect.width / 2 - navRect.left;
-      const raw = iconCenterInNav - PANEL_WIDTH / 2;
-      const clamped = Math.max(8, Math.min(NAV_WIDTH - PANEL_WIDTH - 8, raw));
+      // Right-align: panel's LEFT edge = icon's LEFT edge
+      const iconLeft = iconRect.left - navRect.left;
+      const clamped = Math.max(8, Math.min(NAV_WIDTH - PANEL_WIDTH - 8, iconLeft));
       setPanelLeft(clamped);
     }
     setActiveId(id);
@@ -424,79 +393,108 @@ export default function HorizontalSidebarInteraction() {
   return (
     <div
       className="relative min-h-screen w-full flex items-center justify-center"
-      style={{ background: colors.canvas, fontFamily: "var(--font-inter), sans-serif" }}
+      // Background and grid are HARDCODED — dark mode never touches these
+      style={{ background: "#EDEDED", fontFamily: "var(--font-inter), sans-serif" }}
       onClick={() => setActiveId(null)}
     >
-      {/* Background grid */}
+      {/* Static grid — always light */}
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
           backgroundImage: `
-            linear-gradient(${colors.grid} 1px, transparent 1px),
-            linear-gradient(90deg, ${colors.grid} 1px, transparent 1px)
+            linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px)
           `,
           backgroundSize: "120px 120px",
         }}
       />
 
-      {/* Nav wrapper */}
-      <div
-        className="relative"
-        ref={navRef}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Navigation bar */}
-        <div
-          className="relative flex items-center gap-4 px-5"
-          style={{
-            width: NAV_WIDTH,
-            height: 88,
-            background: colors.nav,
-            border: `1.5px solid ${colors.navBorder}`,
-            borderRadius: 32,
-            boxShadow: colors.navShadow,
-          }}
-        >
-          {/* macOS dots */}
-          <MacDots />
+      {/* Nav outer wrapper — ref for icon measurement */}
+      <div className="relative" ref={navRef} onClick={(e) => e.stopPropagation()}>
 
-          {/* Divider */}
+        {/*
+          Two-layer nav shell:
+          - Outer shell: border + shadow (CSS transition), overflow:hidden clips the wipe
+          - Light base layer: always visible underneath
+          - Dark wipe layer: clip-path sweeps left→right on toggle (linear, fast)
+          - Content layer: absolutely stacked on top, NOT inside overflow:hidden
+            so tooltips can escape the nav bounds
+        */}
+        <div style={{ position: "relative", width: NAV_WIDTH, height: 88 }}>
+
+          {/* Shell — overflow:hidden clips the dark wipe to the pill shape */}
           <div
-            className="flex-shrink-0 w-px self-stretch my-5"
-            style={{ background: colors.divider }}
-          />
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: 32,
+              overflow: "hidden",
+              border: `1.5px solid ${colors.navBorder}`,
+              boxShadow: colors.navShadow,
+              transition: CT,
+            }}
+          >
+            {/* Light base — always present */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: colors.navLight,
+              }}
+            />
 
-          {/* Icon stack */}
-          <div className="flex-1 flex items-center justify-center gap-1">
-            {NAV_ITEMS.map((item) => (
-              <NavIcon
-                key={item.id}
-                item={item}
-                isActive={activeId === item.id}
-                onClick={() => handleIconClick(item.id)}
-                ref={(el) => {
-                  iconRefs.current[item.id] = el;
-                }}
-                colors={colors}
-              />
-            ))}
+            {/* Dark wipe — clip-path grows left → right on isDark */}
+            <motion.div
+              style={{ position: "absolute", inset: 0, background: colors.navDark }}
+              initial={false}
+              animate={{
+                clipPath: isDark
+                  ? "inset(0 0% 0 0)"       // fully visible
+                  : "inset(0 100% 0 0)",    // fully clipped (right side collapses last)
+              }}
+              transition={{ duration: 0.2, ease: "linear" }}
+            />
           </div>
 
-          {/* Divider */}
+          {/* Content — sits above shell, outside overflow:hidden */}
           <div
-            className="flex-shrink-0 w-px self-stretch my-5"
-            style={{ background: colors.divider }}
-          />
+            className="absolute inset-0 flex items-center gap-4 px-5"
+            style={{ zIndex: 10 }}
+          >
+            <MacDots />
 
-          {/* Theme toggle */}
-          <ThemeButton
-            isDark={isDark}
-            onToggle={() => setIsDark((d) => !d)}
-            colors={colors}
-          />
+            <div
+              className="flex-shrink-0 w-px self-stretch my-5"
+              style={{ background: colors.divider, transition: CT }}
+            />
+
+            <div className="flex-1 flex items-center justify-center gap-1">
+              {NAV_ITEMS.map((item) => (
+                <NavIcon
+                  key={item.id}
+                  item={item}
+                  isActive={activeId === item.id}
+                  onClick={() => handleIconClick(item.id)}
+                  ref={(el) => { iconRefs.current[item.id] = el; }}
+                  colors={colors}
+                />
+              ))}
+            </div>
+
+            <div
+              className="flex-shrink-0 w-px self-stretch my-5"
+              style={{ background: colors.divider, transition: CT }}
+            />
+
+            <ThemeButton
+              isDark={isDark}
+              onToggle={() => setIsDark((d) => !d)}
+              colors={colors}
+            />
+          </div>
         </div>
 
-        {/* Floating panel — anchored to clicked icon */}
+        {/* Floating panel — right-aligned to clicked icon */}
         <AnimatePresence mode="wait">
           {activeItem && (
             <FloatingPanel
